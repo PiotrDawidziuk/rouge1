@@ -26,6 +26,7 @@ var level_size
 # Node refs ----------------------------
 
 onready var tile_map = $TileMap
+onready var visibility_map = $VisibilityMap
 onready var player = $Player
 
 # Game State ---------------------------
@@ -67,7 +68,16 @@ func try_move(dx,dy):
 		Tile.Door: 
 			set_tile(x,y,Tile.Floor)	
 			
-	update_visuals()
+		Tile.Ladder:
+			level_num += 1
+			score += 20
+			if level_num < LEVEL_SIZES.size():
+				build_level()
+			else:
+				score+=1000
+				$CanvasLayer/Win.visible = true
+			
+	call_deferred("update_visuals")
 	
 	
 func build_level():
@@ -83,6 +93,7 @@ func build_level():
 		for y in range(level_size.y):
 			map[x].append(Tile.Stone)
 			tile_map.set_cell(x,y,Tile.Stone)
+			visibility_map.set_cell(x,y,0)
 			
 	var free_regions =[Rect2(Vector2(2,2), level_size - Vector2(4,4))]
 	var num_rooms = LEVEL_ROOM_COUNTS[level_num]
@@ -93,14 +104,44 @@ func build_level():
 	
 	connect_rooms()
 	
+	#Place player 
+	
 	var start_room = rooms.front()
 	var player_x = start_room.position.x + 1 + randi() % int(start_room.size.x -2)
 	var player_y = start_room.position.y + 1 + randi() % int(start_room.size.y -2)
 	player_tile = Vector2(player_x, player_y)
-	update_visuals()
+	call_deferred("update_visuals")
+	
+	# place ladder 
+	
+	var end_room = rooms.back()
+	var ladder_x = end_room.position.x + 1 + randi() % int(end_room.size.x -2)
+	var ladder_y = end_room.position.y + 1 + randi() % int(end_room.size.y -2)	
+	set_tile(ladder_x,ladder_y, Tile.Ladder)
+	
+	$CanvasLayer/Level.text = "Level: " + str(level_num)
 	
 func update_visuals():
+
 	player.position = player_tile * TILE_SIZE
+	yield(get_tree().create_timer(0.000001), "timeout")
+	var player_center = tile_to_pixel_center(player_tile.x, player_tile.y)
+	var space_state = get_world_2d().direct_space_state
+	for x in range(level_size.x):
+		for y in range(level_size.y):
+			if visibility_map.get_cell(x, y) ==0:
+				var x_dir = 1 if x < player_tile.x else -1
+				var y_dir = 1 if y < player_tile.y else -1
+				var test_point = tile_to_pixel_center(x, y) + Vector2(x_dir, y_dir) * TILE_SIZE / 2
+				
+				var occlusion = space_state.intersect_ray(player_center, test_point)
+				if !occlusion || (occlusion.position - test_point).length() < 1:
+					visibility_map.set_cell(x, y, -1)
+		
+	
+func tile_to_pixel_center(x,y):
+	return Vector2((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE)
+
 	
 	
 func connect_rooms():
@@ -315,3 +356,10 @@ func set_tile(x,y,type):
 		
 		
 	
+
+
+func _on_Button_pressed():
+	level_num = 0
+	score = 0
+	build_level()
+	$CanvasLayer/Win.visible = false
