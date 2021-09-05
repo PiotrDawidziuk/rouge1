@@ -12,6 +12,7 @@ const LEVEL_SIZES = [
 
 const LEVEL_ROOM_COUNTS = [5,7,9,12,15]
 const LEVEL_ENEMY_COUNTS = [5,8,12,18,26]
+const LEVEL_ITEM_COUNTS = [2,4,6,8,10]
 const MIN_ROOM_DIMENSION = 5
 const MAX_ROOM_DIMENSION = 8
 const PLAYER_START_HP = 5
@@ -19,6 +20,26 @@ const PLAYER_START_HP = 5
 enum Tile{Wall, Door, Floor, Ladder, Stone}
 
 const EnemyScene = preload("res://Enemy.tscn")
+const CanScene = preload("res://Can.tscn")
+const PaperScene = preload("res://Paper.tscn")
+
+const CAN_FUNCTIONS = ["blind", "heal", "poison"]
+
+class Item extends Reference:
+	var sprite_node
+	var tile
+	var is_paper
+	
+	func _init(game, x, y, is_paper):
+		self.is_paper = is_paper
+		tile = Vector2(x,y)
+		sprite_node = PaperScene.instance() if is_paper else CanScene.instance()
+		sprite_node.frame = randi() % sprite_node.hframes
+		sprite_node.offset = Vector2(randi() % 12 - 6, randi() % 12 - 6)
+		game.add_child(sprite_node)
+		
+	func remove():
+		sprite_node.queue_free()
 
 class Enemy extends Reference:
 	var sprite_node
@@ -48,6 +69,14 @@ class Enemy extends Reference:
 		if hp == 0:
 			dead = true
 			game.score += 10 * full_hp
+
+			# Drop paper
+			for i in range(randi() % (full_hp)):
+				game.items.append(Item.new(game, tile.x, tile.y, true))
+				
+			# Drop cans
+			for i in range(randi() % 3):
+				game.items.append(Item.new(game, tile.x, tile.y, false))
 		
 	func act(game):
 		if !sprite_node.visible:
@@ -79,6 +108,9 @@ var map = []
 var rooms = []
 var level_size
 var enemies = []
+var items = []
+var can_types
+
 
 # Node refs ----------------------------
 
@@ -92,6 +124,9 @@ var player_tile
 var score = 0
 var enemy_pathfinding
 var player_hp = PLAYER_START_HP
+var blind_turns = 0
+var healing_turns = 0
+var poison_turns = 0
 
 
 func _ready():
@@ -132,6 +167,7 @@ func try_move(dx,dy):
 					break
 			if !blocked:	
 				player_tile = Vector2(x,y)
+				pickup_items()
 			
 		Tile.Door: 
 			set_tile(x,y,Tile.Floor)	
@@ -147,10 +183,55 @@ func try_move(dx,dy):
 			
 	for enemy in enemies:
 		enemy.act(self)
+		
+	if blind_turns > 0:
+		blind_turns -= 1
+		if blind_turns == 0:
+			$CanvasLayer/Blindness.visible = false
+			$Player/Blindness.visible = false
+	
+	if poison_turns > 0:
+		poison_turns -= 1
+		damage_player(1)
+		if poison_turns == 0:
+			$CanvasLayer/Poisoned.visible = false
+		
+	if healing_turns > 0:
+		healing_turns -= 1
+		player_hp += 2
+		if healing_turns == 0:
+			$CanvasLayer/Healing.visible = false
 	
 	call_deferred("update_visuals")
 	
+func pickup_items():
+	var remove_queue = []
+	for item in items:
+		if item.tile == player_tile:
+			if item.is_paper:
+				player_hp += 2
+				score += 1
+			else:
+				call(can_types[item.sprite_node.frame])
+			item.remove()
+			remove_queue.append(item)
+		
+	for item in remove_queue:
+		items.erase(item)
+func blind():
+	blind_turns = 10
+	$CanvasLayer/Blindness.visible = true
+	$Player/Blindness.visible = true
 	
+func heal():
+	healing_turns = 3
+	$CanvasLayer/Healing.visible = true
+
+func poison():
+	poison_turns = 3
+	$CanvasLayer/Poisoned.visible = true
+
+			
 func build_level():
 	# Start with blank map
 	
@@ -162,7 +243,14 @@ func build_level():
 		enemy.remove()
 	enemies.clear()
 	
+	for item in items:
+		item.remove()
+	items.clear()
+	
 	enemy_pathfinding = AStar.new()
+	
+	can_types = CAN_FUNCTIONS.duplicate()
+	can_types.shuffle()
 	
 	level_size = LEVEL_SIZES[level_num]
 	for x in range(level_size.x):
@@ -204,8 +292,16 @@ func build_level():
 		if !blocked:
 			var enemy = Enemy.new(self, randi() % 2, x, y)
 			enemies.append(enemy)
-	call_deferred("update_visuals")
+
 	
+	# place items 
+	var num_items = LEVEL_ITEM_COUNTS[level_num]
+	for i in range(num_items):
+		var room = rooms[randi() % (rooms.size())]
+		var x = room.position.x + 1 + randi() % int(room.size.x - 2)
+		var y = room.position.y + 1 + randi() % int(room.size.y - 2)
+		items.append(Item.new(self, x, y, randi() % 2 == 0))	
+	call_deferred("update_visuals")
 	# place ladder 
 	
 	var end_room = rooms.back()
@@ -256,6 +352,14 @@ func update_visuals():
 			var occlusion = space_state.intersect_ray(player_center,enemy_center)
 			if !occlusion:
 				enemy.sprite_node.visible = true
+				
+	for item in items:
+		item.sprite_node.position = item.tile * TILE_SIZE
+		if !item.sprite_node.visible:
+			var item_center = tile_to_pixel_center(item.tile.x, item.tile.y)
+			var occlusion = space_state.intersect_ray(player_center, item_center)
+			if !occlusion:
+				item.sprite_node.visible = true
 			
 		
 	$CanvasLayer/HP.text = "HP: " + str(player_hp)

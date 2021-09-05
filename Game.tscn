@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=2]
+[gd_scene load_steps=15 format=2]
 
 [ext_resource path="res://Art/wall.png" type="Texture" id=1]
 [ext_resource path="res://Art/door.png" type="Texture" id=2]
@@ -8,6 +8,7 @@
 [ext_resource path="res://Art/stone.png" type="Texture" id=6]
 [ext_resource path="res://Art/player.png" type="Texture" id=7]
 [ext_resource path="res://Art/black.png" type="Texture" id=8]
+[ext_resource path="res://Art/light.png" type="Texture" id=9]
 
 [sub_resource type="ConvexPolygonShape2D" id=1]
 points = PoolVector2Array( 0, 0, 32, 0, 32, 32, 0, 32 )
@@ -153,9 +154,16 @@ drag_margin_top = 0.0
 drag_margin_right = 0.0
 drag_margin_bottom = 0.0
 
+[node name="Blindness" type="Light2D" parent="Player"]
+visible = false
+position = Vector2( 16, 16 )
+texture = ExtResource( 9 )
+mode = 3
+
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="ColorRect" type="ColorRect" parent="CanvasLayer"]
+light_mask = 0
 margin_left = -32.0
 margin_right = 640.0
 margin_bottom = 32.0
@@ -165,6 +173,7 @@ __meta__ = {
 }
 
 [node name="Level" type="Label" parent="CanvasLayer"]
+light_mask = 0
 margin_right = 40.0
 margin_bottom = 32.0
 text = "Level:"
@@ -174,6 +183,7 @@ __meta__ = {
 }
 
 [node name="HP" type="Label" parent="CanvasLayer"]
+light_mask = 0
 margin_left = 96.0
 margin_right = 136.0
 margin_bottom = 32.0
@@ -184,6 +194,7 @@ __meta__ = {
 }
 
 [node name="Score" type="Label" parent="CanvasLayer"]
+light_mask = 0
 margin_left = 160.0
 margin_right = 203.0
 margin_bottom = 32.0
@@ -193,8 +204,48 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
+[node name="Healing" type="Label" parent="CanvasLayer"]
+visible = false
+light_mask = 0
+margin_left = 160.0
+margin_top = 320.0
+margin_right = 208.0
+margin_bottom = 352.0
+text = "Healing"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Poisoned" type="Label" parent="CanvasLayer"]
+visible = false
+light_mask = 0
+margin_left = 256.0
+margin_top = 320.0
+margin_right = 315.0
+margin_bottom = 352.0
+text = "Poisoned"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Blindness" type="Label" parent="CanvasLayer"]
+visible = false
+light_mask = 0
+margin_left = 352.0
+margin_top = 320.0
+margin_right = 415.0
+margin_bottom = 352.0
+text = "Blindness"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
 [node name="Win" type="ColorRect" parent="CanvasLayer"]
 visible = false
+light_mask = 0
 margin_left = -32.0
 margin_top = -32.0
 margin_right = 640.0
@@ -205,6 +256,7 @@ __meta__ = {
 }
 
 [node name="WinLabel" type="Label" parent="CanvasLayer/Win"]
+light_mask = 0
 margin_left = 224.0
 margin_top = 160.0
 margin_right = 448.0
@@ -216,6 +268,7 @@ __meta__ = {
 }
 
 [node name="Button" type="Button" parent="CanvasLayer/Win"]
+light_mask = 0
 margin_left = 256.0
 margin_top = 192.0
 margin_right = 416.0
@@ -224,6 +277,7 @@ text = "Restart"
 
 [node name="Lose" type="ColorRect" parent="CanvasLayer"]
 visible = false
+light_mask = 0
 margin_left = -32.0
 margin_top = -32.0
 margin_right = 640.0
@@ -234,6 +288,7 @@ __meta__ = {
 }
 
 [node name="Label" type="Label" parent="CanvasLayer/Lose"]
+light_mask = 0
 margin_left = 224.0
 margin_top = 160.0
 margin_right = 448.0
@@ -245,6 +300,7 @@ __meta__ = {
 }
 
 [node name="Button" type="Button" parent="CanvasLayer/Lose"]
+light_mask = 0
 margin_left = 256.0
 margin_top = 192.0
 margin_right = 416.0
