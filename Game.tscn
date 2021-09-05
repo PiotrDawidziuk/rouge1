@@ -261,7 +261,7 @@ margin_left = 224.0
 margin_top = 160.0
 margin_right = 448.0
 margin_bottom = 174.0
-text = "You Won"
+text = "You are victorious!"
 align = 1
 __meta__ = {
 "_edit_use_anchors_": false
@@ -273,7 +273,7 @@ margin_left = 256.0
 margin_top = 192.0
 margin_right = 416.0
 margin_bottom = 256.0
-text = "Restart"
+text = "Play again!"
 
 [node name="Lose" type="ColorRect" parent="CanvasLayer"]
 visible = false
